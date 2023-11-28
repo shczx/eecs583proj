@@ -1,0 +1,7 @@
+build
+*.ll
+*.pdf
+*.dot
+.vscode
+*.gz
+*.tgz
