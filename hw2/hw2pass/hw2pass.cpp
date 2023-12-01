@@ -39,43 +39,156 @@ using namespace llvm;
 
 namespace
 {
-  BasicBlock *getHotSuccessor(const llvm::BasicBlock &bb, const llvm::BranchProbabilityAnalysis::Result &bpi)
-  {
-    auto i = bb.getTerminator();
-
-    auto prob = bpi.getEdgeProbability(&bb, i->getSuccessor(0));
-    if (prob >= BranchProbability(4, 5))
-    {
-      return i->getSuccessor(0);
-    }
-
-    return i->getSuccessor(1);
-  }
-
-  bool isIn(const Instruction *i, const std::vector<BasicBlock *> &bbs)
-  {
-    auto bb = i->getParent();
-    for (auto b : bbs)
-    {
-      if (bb == b)
-      {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
   struct HW2CorrectnessPass : public PassInfoMixin<HW2CorrectnessPass>
   {
 
-    PreservedAnalyses run(Function &F, FunctionAnalysisManager &FAM)
+    struct bbSinkingAnalysis
+    {
+      Instruction *gen = nullptr;
+      bool kill = false;
+      Value *in = nullptr;
+      Value *out = nullptr;
+    };
+
+    PreservedAnalyses
+    run(Function &F, FunctionAnalysisManager &FAM)
     {
       llvm::BlockFrequencyAnalysis::Result &bfi = FAM.getResult<BlockFrequencyAnalysis>(F);
       llvm::BranchProbabilityAnalysis::Result &bpi = FAM.getResult<BranchProbabilityAnalysis>(F);
       llvm::LoopAnalysis::Result &li = FAM.getResult<LoopAnalysis>(F);
       /* *******Implementation Starts Here******* */
       // Your core logic should reside here.
+
+      // Step 1: Find all variables allocated by Alloca instruction
+      std::vector<Value *> allocas;
+      for (auto &bb : F)
+      {
+        for (auto &i : bb)
+        {
+          if (i.getOpcode() == Instruction::Alloca)
+          {
+            errs() << i << "\n";
+            allocas.push_back(cast<Value>(&i));
+          }
+        }
+      }
+
+      // Step 2: Assignment sinking analysis
+
+      for (auto alloca : allocas)
+      {
+
+        errs() << "alloca: " << *(cast<Instruction>(alloca)) << "\n";
+
+        std::unordered_map<BasicBlock *, bbSinkingAnalysis> analysis;
+
+        for (auto &bb : F)
+        {
+          bbSinkingAnalysis res;
+          for (auto &i : bb)
+          {
+            if (i.getOpcode() == Instruction::Store && i.getOperand(1) == alloca)
+            {
+              res.kill = false;
+              res.gen = &i;
+            }
+            if (i.getOpcode() == Instruction::Load && i.getOperand(0) == alloca)
+            {
+              res.gen = nullptr;
+              res.kill = true;
+            }
+          }
+          analysis[&bb] = res;
+        }
+
+        bool change = true;
+        while (change)
+        {
+          for (auto &bb : F)
+          {
+            auto &res = analysis[&bb];
+            auto oldin = res.in;
+
+            for (auto pred : predecessors(&bb))
+            {
+              auto out = analysis[pred].out;
+              if (out == nullptr)
+              {
+                res.in = nullptr;
+                break;
+              }
+              if (res.in == nullptr)
+              {
+                res.in = out;
+                continue;
+              }
+              if (res.in != out)
+              {
+                res.in = nullptr;
+                break;
+              }
+            }
+
+            if (res.gen)
+            {
+              res.out = res.gen;
+            }
+            else if (!res.kill)
+            {
+              res.out = res.in;
+            }
+
+            change = oldin != res.in;
+          }
+        }
+
+        for (auto i : analysis)
+        {
+          errs() << "BB: ";
+          if (i.first != nullptr)
+          {
+            errs() << *i.first;
+          }
+          else
+          {
+            errs() << "null";
+          }
+
+          errs() << " GEN: ";
+          if (i.second.gen != nullptr)
+          {
+            errs() << *i.second.gen;
+          }
+          else
+          {
+            errs() << "null";
+          }
+
+          errs() << " KILL: " << i.second.kill;
+
+          errs() << " IN: ";
+          if (i.second.in != nullptr)
+          {
+            errs() << *i.second.in;
+          }
+          else
+          {
+            errs() << "null";
+          }
+
+          errs() << " OUT: ";
+          if (i.second.out != nullptr)
+          {
+            errs() << *i.second.out;
+          }
+          else
+          {
+            errs() << "null";
+          }
+
+          errs() << "\n";
+        }
+      }
 
       /* *******Implementation Ends Here******* */
       // Your pass is modifying the source code. Figure out which analyses

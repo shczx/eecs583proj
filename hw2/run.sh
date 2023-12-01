@@ -53,13 +53,13 @@ if [ "$(diff correct_output fplicm_output)" != "" ]; then
     echo -e ">> Outputs do not match\n"
 else
     echo -e ">> Outputs match\n"
-    # Measure performance
-    echo -e "1. Performance of unoptimized code"
-    time ./${1}_no_fplicm > /dev/null
-    echo -e "\n\n"
-    echo -e "2. Performance of optimized code"
-    time ./${1}_fplicm > /dev/null
-    echo -e "\n\n"
+    # # Measure performance
+    # echo -e "1. Performance of unoptimized code"
+    # time ./${1}_no_fplicm > /dev/null
+    # echo -e "\n\n"
+    # echo -e "2. Performance of optimized code"
+    # time ./${1}_fplicm > /dev/null
+    # echo -e "\n\n"
 fi
 
 # Cleanup: Remove this if you want to retain the created files. And you do need to.
