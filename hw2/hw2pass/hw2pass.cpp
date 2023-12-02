@@ -222,7 +222,7 @@ namespace
           }
         }
 
-        // rmDup(F, alloca);
+        rmDup(F, alloca);
 
         for (auto i : analysis)
         {
