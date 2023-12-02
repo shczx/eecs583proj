@@ -30,6 +30,7 @@
 #include "llvm/Transforms/Scalar/LoopPassManager.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/LoopUtils.h"
+#include <unordered_set>
 
 /* *******Implementation Starts Here******* */
 // You can include more Header files here
@@ -50,17 +51,8 @@ namespace
       Value *out = nullptr;
     };
 
-    PreservedAnalyses
-    run(Function &F, FunctionAnalysisManager &FAM)
+    void getAllocas(Function &F, std::vector<Value *> &allocas)
     {
-      llvm::BlockFrequencyAnalysis::Result &bfi = FAM.getResult<BlockFrequencyAnalysis>(F);
-      llvm::BranchProbabilityAnalysis::Result &bpi = FAM.getResult<BranchProbabilityAnalysis>(F);
-      llvm::LoopAnalysis::Result &li = FAM.getResult<LoopAnalysis>(F);
-      /* *******Implementation Starts Here******* */
-      // Your core logic should reside here.
-
-      // Step 1: Find all variables allocated by Alloca instruction
-      std::vector<Value *> allocas;
       for (auto &bb : F)
       {
         for (auto &i : bb)
@@ -72,73 +64,124 @@ namespace
           }
         }
       }
+    }
+
+    void findGenKillInOut(Function &F, Value *alloca, std::unordered_map<BasicBlock *, bbSinkingAnalysis> &analysis)
+    {
+      for (auto &bb : F)
+      {
+        bbSinkingAnalysis res;
+        for (auto &i : bb)
+        {
+          if (i.getOpcode() == Instruction::Store && i.getOperand(1) == alloca)
+          {
+            res.kill = false;
+            res.gen = &i;
+          }
+          if (i.getOpcode() == Instruction::Load && i.getOperand(0) == alloca)
+          {
+            res.gen = nullptr;
+            res.kill = true;
+          }
+        }
+        analysis[&bb] = res;
+      }
+
+      bool change = true;
+      while (change)
+      {
+        for (auto &bb : F)
+        {
+          auto &res = analysis[&bb];
+          auto oldin = res.in;
+
+          for (auto pred : predecessors(&bb))
+          {
+            auto out = analysis[pred].out;
+            if (out == nullptr)
+            {
+              res.in = nullptr;
+              break;
+            }
+            if (res.in == nullptr)
+            {
+              res.in = out;
+              continue;
+            }
+            if (res.in != out)
+            {
+              res.in = nullptr;
+              break;
+            }
+          }
+
+          if (res.gen)
+          {
+            res.out = res.gen;
+          }
+          else if (!res.kill)
+          {
+            res.out = res.in;
+          }
+
+          change = oldin != res.in;
+        }
+      }
+    }
+
+    bool findPartialDeadStores(Function &F, Value *alloca, std::unordered_map<BasicBlock *, bbSinkingAnalysis> &analysis)
+    {
+      std::unordered_set<Instruction *> pds;
+      for (auto &bb : F)
+      {
+        auto bbAnalysis = analysis[&bb];
+        if (bbAnalysis.in != nullptr)
+        {
+          auto inst = dyn_cast<Instruction>(bbAnalysis.in)->clone();
+          inst->insertBefore(&(*(bb.getFirstInsertionPt())));
+          pds.insert(dyn_cast<Instruction>(bbAnalysis.in));
+        }
+      }
+
+      if (pds.empty())
+      {
+        return false;
+      }
+
+      for (auto i : pds)
+      {
+        i->eraseFromParent();
+      }
+      return true;
+    }
+
+    PreservedAnalyses run(Function &F, FunctionAnalysisManager &FAM)
+    {
+      llvm::BlockFrequencyAnalysis::Result &bfi = FAM.getResult<BlockFrequencyAnalysis>(F);
+      llvm::BranchProbabilityAnalysis::Result &bpi = FAM.getResult<BranchProbabilityAnalysis>(F);
+      llvm::LoopAnalysis::Result &li = FAM.getResult<LoopAnalysis>(F);
+      /* *******Implementation Starts Here******* */
+      // Your core logic should reside here.
+
+      // Step 1: Find all variables allocated by Alloca instruction
+      std::vector<Value *> allocas;
+      getAllocas(F, allocas);
 
       // Step 2: Assignment sinking analysis
 
       for (auto alloca : allocas)
       {
-
         errs() << "alloca: " << *(cast<Instruction>(alloca)) << "\n";
 
         std::unordered_map<BasicBlock *, bbSinkingAnalysis> analysis;
 
-        for (auto &bb : F)
+        while (true)
         {
-          bbSinkingAnalysis res;
-          for (auto &i : bb)
+          findGenKillInOut(F, alloca, analysis);
+
+          if (!findPartialDeadStores(F, alloca, analysis))
           {
-            if (i.getOpcode() == Instruction::Store && i.getOperand(1) == alloca)
-            {
-              res.kill = false;
-              res.gen = &i;
-            }
-            if (i.getOpcode() == Instruction::Load && i.getOperand(0) == alloca)
-            {
-              res.gen = nullptr;
-              res.kill = true;
-            }
-          }
-          analysis[&bb] = res;
-        }
-
-        bool change = true;
-        while (change)
-        {
-          for (auto &bb : F)
-          {
-            auto &res = analysis[&bb];
-            auto oldin = res.in;
-
-            for (auto pred : predecessors(&bb))
-            {
-              auto out = analysis[pred].out;
-              if (out == nullptr)
-              {
-                res.in = nullptr;
-                break;
-              }
-              if (res.in == nullptr)
-              {
-                res.in = out;
-                continue;
-              }
-              if (res.in != out)
-              {
-                res.in = nullptr;
-                break;
-              }
-            }
-
-            if (res.gen)
-            {
-              res.out = res.gen;
-            }
-            else if (!res.kill)
-            {
-              res.out = res.in;
-            }
-
-            change = oldin != res.in;
+            break;
           }
         }
 
