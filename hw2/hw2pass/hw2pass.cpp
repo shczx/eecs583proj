@@ -159,6 +159,39 @@ namespace
       return true;
     }
 
+    void rmDup(Function &F, Value *alloca)
+    {
+      for (auto &bb : F)
+      {
+        bool current_store = false;
+
+        std::vector<Instruction *> toDel;
+
+        for (auto i = bb.rbegin(); i != bb.rend(); ++i)
+        {
+          errs() << *i << "\n";
+          if (i->getOpcode() == Instruction::Store && i->getOperand(1) == alloca)
+          {
+            if (!current_store)
+            {
+              current_store = true;
+              continue;
+            }
+            toDel.push_back(&(*(i)));
+          }
+          else if (i->getOpcode() == Instruction::Load && i->getOperand(0) == alloca)
+          {
+            current_store = false;
+          }
+        }
+
+        for (auto del : toDel)
+        {
+          del->eraseFromParent();
+        }
+      }
+    }
+
     PreservedAnalyses run(Function &F, FunctionAnalysisManager &FAM)
     {
       llvm::BlockFrequencyAnalysis::Result &bfi = FAM.getResult<BlockFrequencyAnalysis>(F);
@@ -188,6 +221,8 @@ namespace
             break;
           }
         }
+
+        // rmDup(F, alloca);
 
         for (auto i : analysis)
         {
