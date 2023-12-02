@@ -108,7 +108,7 @@ namespace
               res.in = out;
               continue;
             }
-            if (res.in != out)
+            if (!dyn_cast<Instruction>(res.in)->isIdenticalTo(dyn_cast<Instruction>(out)))
             {
               res.in = nullptr;
               break;
@@ -139,7 +139,11 @@ namespace
         {
           auto inst = dyn_cast<Instruction>(bbAnalysis.in)->clone();
           inst->insertBefore(&(*(bb.getFirstInsertionPt())));
-          pds.insert(dyn_cast<Instruction>(bbAnalysis.in));
+          for (auto predBB : predecessors(&bb))
+          {
+            auto predBbAnalysis = analysis[predBB];
+            pds.insert(dyn_cast<Instruction>(predBbAnalysis.out));
+          }
         }
       }
 
