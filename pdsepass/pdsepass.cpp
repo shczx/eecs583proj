@@ -1,19 +1,4 @@
-//===-- Frequent Path Loop Invariant Code Motion Pass --------------------===//
-//
-//                     The LLVM Compiler Infrastructure
-//
-// This file is distributed under the University of Illinois Open Source
-// License. See LICENSE.TXT for details.
-//
-//===---------------------------------------------------------------------===//
-//
-// EECS583 F23 - This pass can be used as a template for your FPLICM homework
-//               assignment.
-//               The passes get registered as "fplicm-correctness" and
-//               "fplicm-performance".
-//
-//
-////===-------------------------------------------------------------------===//
+//===-- Partial Dead Store Elimination Pass --------------------===//
 #include "llvm/Analysis/BlockFrequencyInfo.h"
 #include "llvm/Analysis/BranchProbabilityInfo.h"
 #include "llvm/Analysis/LoopInfo.h"
@@ -42,7 +27,7 @@ using namespace llvm;
 
 namespace
 {
-  struct HW2CorrectnessPass : public PassInfoMixin<HW2CorrectnessPass>
+  struct PDSECorrectnessPass : public PassInfoMixin<PDSECorrectnessPass>
   {
 
     struct bbSinkingAnalysis
@@ -315,7 +300,7 @@ namespace
       return PreservedAnalyses::all();
     }
   };
-  struct HW2PerformancePass : public PassInfoMixin<HW2PerformancePass>
+  struct PDSEPerformancePass : public PassInfoMixin<PDSEPerformancePass>
   {
     PreservedAnalyses run(Function &F, FunctionAnalysisManager &FAM)
     {
@@ -337,21 +322,21 @@ extern "C" ::llvm::PassPluginLibraryInfo LLVM_ATTRIBUTE_WEAK
 llvmGetPassPluginInfo()
 {
   return {
-      LLVM_PLUGIN_API_VERSION, "HW2Pass", "v0.1",
+      LLVM_PLUGIN_API_VERSION, "PDSEPass", "v0.1",
       [](PassBuilder &PB)
       {
         PB.registerPipelineParsingCallback(
             [](StringRef Name, FunctionPassManager &FPM,
                ArrayRef<PassBuilder::PipelineElement>)
             {
-              if (Name == "fplicm-correctness")
+              if (Name == "pdse-correctness")
               {
-                FPM.addPass(HW2CorrectnessPass());
+                FPM.addPass(PDSECorrectnessPass());
                 return true;
               }
-              if (Name == "fplicm-performance")
+              if (Name == "pdse-performance")
               {
-                FPM.addPass(HW2PerformancePass());
+                FPM.addPass(PDSEPerformancePass());
                 return true;
               }
               return false;

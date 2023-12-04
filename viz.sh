@@ -1,5 +1,5 @@
 #!/bin/bash
-# Usage: viz.sh hw2correctN or vis.sh hw2correctN.fplicm [TYPE]
+# Usage: viz.sh correctN or vis.sh correctN.pdse [TYPE]
 # TYPE should be one of: cfg, cfg-only, dom, dom-only, postdom, postdom-only.
 # Default type is cfg.
 
