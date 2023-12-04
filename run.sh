@@ -7,8 +7,8 @@
 PATH2LIB="../../build/pdsepass/PDSEPass.so"        # Specify your build directory in the project
 
 # ACTION NEEDED: Choose the correct pass when running.
-PASS=pdsepass-correctness                   # Choose either -pdse-correctness ...
-# PASS=pdsepass-performance                 # ... or -pdsepass-performance
+PASS=pdse-correctness                   # Choose either -pdse-correctness ...
+# PASS=pdse-performance                 # ... or -pdse-performance
 
 # Delete outputs from previous runs. Update this when you want to retain some files.
 rm -f default.profraw *_prof *_pdse *.bc *.profdata *_output *.ll
