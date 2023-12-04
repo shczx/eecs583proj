@@ -30,7 +30,9 @@
 #include "llvm/Transforms/Scalar/LoopPassManager.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/LoopUtils.h"
+#include "llvm/ADT/DepthFirstIterator.h"
 #include <unordered_set>
+#include <stack>
 
 /* *******Implementation Starts Here******* */
 // You can include more Header files here
@@ -66,6 +68,24 @@ namespace
       }
     }
 
+    bool hasPathBetweenBlocks(BasicBlock *start, BasicBlock *end)
+    {
+      if (start == end)
+      {
+        return true;
+      }
+
+      for (auto child : successors(start))
+      {
+        if (hasPathBetweenBlocks(child, end))
+        {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
     void findGenKillInOut(Function &F, Value *alloca, std::unordered_map<BasicBlock *, bbSinkingAnalysis> &analysis)
     {
       for (auto &bb : F)
@@ -84,6 +104,23 @@ namespace
             res.kill = true;
           }
         }
+
+        std::vector<BasicBlock *> successorsBB;
+        for (auto successor : successors(&bb))
+        {
+          successorsBB.push_back(successor);
+        }
+
+        for (int i = 0; i < (int)(successorsBB.size()) - 1; ++i)
+        {
+          if (hasPathBetweenBlocks(successorsBB[i], successorsBB[i + 1]) || hasPathBetweenBlocks(successorsBB[i + 1], successorsBB[i]))
+          {
+            res.gen = nullptr;
+            res.kill = true;
+            break;
+          }
+        }
+
         analysis[&bb] = res;
       }
 

@@ -3,16 +3,14 @@
 int main()
 {
 	int x = 2;
-	int y = 3;
-	int z = 4;
-	if (x == 2)
+	if (x > 1)
 	{
-		z = y;
+		x = 3;
 	}
 	else
 	{
-		y = 6;
+		int y = x;
 	}
-	z = y;
-	return 0;
+	printf("x: %i", x);
+	return x;
 }
