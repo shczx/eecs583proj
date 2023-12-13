@@ -191,7 +191,7 @@ namespace
 
         for (auto i = bb.rbegin(); i != bb.rend(); ++i)
         {
-          errs() << *i << "\n";
+          // errs() << *i << "\n";
           if (i->getOpcode() == Instruction::Store && i->getOperand(1) == alloca)
           {
             if (!current_store)
@@ -222,7 +222,7 @@ namespace
       /* *******Implementation Starts Here******* */
       // Your core logic should reside here.
 
-      // Step 1: Find all variables allocated by Alloca instruction
+      // Step 1: Find all addresses allocated by Alloca instruction
       std::vector<Value *> allocas;
       getAllocas(F, allocas);
 
