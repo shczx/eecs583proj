@@ -232,7 +232,7 @@ namespace
       {
         // errs() << "alloca: " << *(cast<Instruction>(alloca)) << "\n";
         
-        // Step 2: Assignment sinking analysis
+        // Step 2: Store sinking analysis
         std::unordered_map<BasicBlock *, bbSinkingAnalysis> analysis;
 
         while (true)
