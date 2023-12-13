@@ -46,7 +46,7 @@ namespace
         {
           if (i.getOpcode() == Instruction::Alloca)
           {
-            errs() << i << "\n";
+            // errs() << i << "\n";
             allocas.push_back(cast<Value>(&i));
           }
         }
