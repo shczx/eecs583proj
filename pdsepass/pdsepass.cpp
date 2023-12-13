@@ -226,12 +226,13 @@ namespace
       std::vector<Value *> allocas;
       getAllocas(F, allocas);
 
-      // Step 2: Assignment sinking analysis
+      
 
       for (auto alloca : allocas)
       {
-        errs() << "alloca: " << *(cast<Instruction>(alloca)) << "\n";
-
+        // errs() << "alloca: " << *(cast<Instruction>(alloca)) << "\n";
+        
+        // Step 2: Assignment sinking analysis
         std::unordered_map<BasicBlock *, bbSinkingAnalysis> analysis;
 
         while (true)
@@ -243,55 +244,57 @@ namespace
             break;
           }
         }
-
+        
+        // Step 3: Eliminate dead stores
         rmDup(F, alloca);
 
-        for (auto i : analysis)
-        {
-          errs() << "BB: ";
-          if (i.first != nullptr)
-          {
-            errs() << *i.first;
-          }
-          else
-          {
-            errs() << "null";
-          }
+        // Print statements for debugging
+        // for (auto i : analysis)
+        // {
+        //   errs() << "BB: ";
+        //   if (i.first != nullptr)
+        //   {
+        //     errs() << *i.first;
+        //   }
+        //   else
+        //   {
+        //     errs() << "null";
+        //   }
 
-          errs() << " GEN: ";
-          if (i.second.gen != nullptr)
-          {
-            errs() << *i.second.gen;
-          }
-          else
-          {
-            errs() << "null";
-          }
+        //   errs() << " GEN: ";
+        //   if (i.second.gen != nullptr)
+        //   {
+        //     errs() << *i.second.gen;
+        //   }
+        //   else
+        //   {
+        //     errs() << "null";
+        //   }
 
-          errs() << " KILL: " << i.second.kill;
+        //   errs() << " KILL: " << i.second.kill;
 
-          errs() << " IN: ";
-          if (i.second.in != nullptr)
-          {
-            errs() << *i.second.in;
-          }
-          else
-          {
-            errs() << "null";
-          }
+        //   errs() << " IN: ";
+        //   if (i.second.in != nullptr)
+        //   {
+        //     errs() << *i.second.in;
+        //   }
+        //   else
+        //   {
+        //     errs() << "null";
+        //   }
 
-          errs() << " OUT: ";
-          if (i.second.out != nullptr)
-          {
-            errs() << *i.second.out;
-          }
-          else
-          {
-            errs() << "null";
-          }
+        //   errs() << " OUT: ";
+        //   if (i.second.out != nullptr)
+        //   {
+        //     errs() << *i.second.out;
+        //   }
+        //   else
+        //   {
+        //     errs() << "null";
+        //   }
 
-          errs() << "\n";
-        }
+        //   errs() << "\n";
+        // }
       }
 
       /* *******Implementation Ends Here******* */
